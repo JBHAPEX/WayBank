@@ -385,7 +385,6 @@ Por favor, asegúrate de seguir las directrices de contribución y el código de
 Este proyecto está licenciado bajo MIT License.
 
 📞 Contacto
-Equipo: Lorenzo Ballanti, Cristian Torrubia, Toni Monterrubio
 Email: info@elysiumdubai.net
 
 
@@ -805,8 +804,6 @@ Por favor, asegúrate de seguir las directrices de contribución y el código de
 Este proyecto está licenciado bajo MIT License.
 
 📞 Contacto
-
-Equipo: Lorenzo Ballanti, Cristian Torrubia, Toni Monterrubio
 Email: info@elysiumdubai.net
 
 
