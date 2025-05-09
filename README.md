@@ -1,5 +1,5 @@
-# WayBank
-APEX --> WayBank --> Uniswap V4
+# WayPool
+APEX --> WayPool --> Uniswap V4
 
 PROJECT APEX
 <div align="center">
