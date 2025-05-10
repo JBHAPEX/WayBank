@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\usepackage{noto}
+\usepackage{parskip}
+
+\title{Calculation of Capital Percentage to Hedge Losses in Concentrated Liquidity Pools}
+\author{WayPool.net \\ \texttt{contact@waypool.tech}}
+\date{April 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document presents a mathematical guide for calculating the percentage of capital required to hedge impermanent loss in concentrated liquidity pools (e.g., Uniswap V4) using a leveraged short position. It includes a precise formula, a practical example, and key considerations for its application in decentralized finance (DeFi).
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+In decentralized finance (DeFi), liquidity providers (LPs) in concentrated liquidity pools, such as Uniswap V4, face risks associated with impermanent loss (IL), which occurs when the relative price of tokens in a pair changes. This loss can be significant if the volatile token (e.g., ETH in an ETH/USDC pair) decreases in value, altering the pool's composition and reducing the total value in terms of the stable token (e.g., USDC).
+
+To mitigate this risk, WayPool.net proposes a leveraged short position on the volatile token, such that the profits from the position offset the IL. This document provides a precise mathematical formula to determine the percentage of capital to allocate to the short position, considering factors such as leverage, token price changes, and pool dynamics. The methodology is useful for DeFi investors seeking to protect their capital in bearish scenarios.
+
+\section{Key Concepts: Liquidity Pools and Impermanent Loss}
+A concentrated liquidity pool allows users to provide capital within a specific price range, defined by lower (\(P_a\)) and upper (\(P_b\)) bounds. Unlike traditional pools (e.g., Uniswap V2), concentrated pools offer greater capital efficiency but also increase exposure to IL when the price moves outside the selected range.
+
+Impermanent loss is defined as the difference between the value of the capital provided to the pool and the value it would have had if the tokens were held outside the pool. For a token pair, the approximate IL is calculated as:
+\begin{equation}
+IL = \frac{2 \sqrt{\frac{P_1}{P_0}} - 1 - \frac{P_1}{P_0}}{\frac{P_1}{P_0} - \sqrt{\frac{P_1}{P_0}}}
+\end{equation}
+where:
+\begin{itemize}
+    \item \(P_0\): Initial price of the volatile token (in terms of the stable token, e.g., USD).
+    \item \(P_1\): Final price of the volatile token after a decline.
+\end{itemize}
+This formula assumes the price remains within the range \([P_a, P_b]\). If the price falls below \(P_a\), the pool holds only the stable token, maximizing IL.
+
+\section{Mathematical Formula for Hedging}
+The goal is to calculate the percentage of total capital \(C\) that must be allocated to a leveraged short position to cover 100\% of the IL. The final formula is:
+\begin{equation}
+\text{Percentage} = \frac{\left( \frac{2 \sqrt{\frac{P_1}{P_0}} - 1 - \frac{P_1}{P_0}}{\frac{P_1}{P_0} - \sqrt{\frac{P_1}{P_0}}} \right) \cdot P_0}{\left(P_0 - P_1\right) \cdot A^2} \cdot 100
+\end{equation}
+\textbf{Variables:}
+\begin{itemize}
+    \item \(P_0\): Initial price of the volatile token (in USD).
+    \item \(P_1\): Final price of the volatile token.
+    \item \(A\): Leverage factor (e.g., 5 for \(5\times\)).
+    \item \(IL\): Impermanent loss, calculated using the formula above.
+\end{itemize}
+
+\textbf{Derivation:}
+\begin{enumerate}
+    \item The pool's loss is \(\text{Loss} = C \cdot IL\), where \(C\) is the initial capital.
+    \item The profit from the short position is \(N \cdot (P_0 - P_1) \cdot A\), where \(N\) is the number of tokens in the short position.
+    \item Equate the profit to the loss:
+    \begin{equation}
+    N \cdot (P_0 - P_1) \cdot A = C \cdot IL
+    \end{equation}
+    \item Solve for \(N\):
+    \begin{equation}
+    N = \frac{C \cdot IL}{(P_0 - P_1) \cdot A}
+    \end{equation}
+    \item The capital required for the short position is:
+    \begin{equation}
+    \text{Capital}_{\text{short}} = \frac{N \cdot P_0}{A} = \frac{C \cdot IL \cdot P_0}{(P_0 - P_1) \cdot A^2}
+    \end{equation}
+    \item The percentage is:
+    \begin{equation}
+    \text{Percentage} = \frac{\text{Capital}_{\text{short}}}{C} \cdot 100 = \frac{IL \cdot P_0}{(P_0 - P_1) \cdot A^2} \cdot 100
+    \end{equation}
+\end{enumerate}
+Substituting \(IL\), we obtain the complete formula.
+
+\section{Practical Example}
+Consider the following scenario:
+\begin{itemize}
+    \item Initial capital: \(C = 10,000\) USD.
+    \item Initial ETH price: \(P_0 = 2000\) USD.
+    \item Final ETH price: \(P_1 = 1500\) USD.
+    \item Leverage: \(A = 5\).
+\end{itemize}
+
+\textbf{Steps:}
+\begin{enumerate}
+    \item Calculate IL:
+    \begin{align}
+    \sqrt{\frac{P_1}{P_0}} &= \sqrt{\frac{1500}{2000}} = \sqrt{0.75} \approx 0.866 \notag \\
+    \frac{P_1}{P_0} &= \frac{1500}{2000} = 0.75 \notag \\
+    IL &= \frac{2 \cdot 0.866 - 1 - 0.75}{0.75 - 0.866} = \frac{1.732 - 1 - 0.75}{0.75 - 0.866} = \frac{0.982}{-0.116} \approx 0.0847 \ (8.47\%) \notag
+    \end{align}
+    \item Pool loss:
+    \begin{equation}
+    \text{Loss} = 10,000 \cdot 0.0847 = 847 \text{ USD}
+    \end{equation}
+    \item Number of ETH in the short position:
+    \begin{equation}
+    N = \frac{847}{(2000 - 1500) \cdot 5} = \frac{847}{500 \cdot 5} = \frac{847}{2500} \approx 0.339 \text{ ETH}
+    \end{equation}
+    \item Required capital:
+    \begin{equation}
+    \text{Capital}_{\text{short}} = \frac{0.339 \cdot 2000}{5} = \frac{678}{5} \approx 135.6 \text{ USD}
+    \end{equation}
+    \item Percentage of capital:
+    \begin{equation}
+    \text{Percentage} = \frac{135.6}{10,000} \cdot 100 \approx 1.36\%
+    \end{equation}
+\end{enumerate}
+
+\textbf{Result:} It is necessary to allocate \textbf{1.36\%} of the capital to a short position with \(5\times\) leverage to cover the 847 USD loss.
+
+\section{Additional Considerations}
+\begin{itemize}
+    \item \textbf{Price Range:} The formula assumes the price remains within the range \([P_a, P_b]\). If \(P_1 < P_a\), the pool holds only the stable token, and IL is higher. In this case, an exact calculation based on Uniswap V4 equations is required.
+    \item \textbf{Leverage Costs:} Short positions incur interest or \textit{funding rates} (e.g., on Binance or Bybit), which must be subtracted from the net profit.
+    \item \textbf{Pool Fees:} Fees generated by the pool can mitigate IL but were not included in this analysis to focus on full hedging.
+    \item \textbf{Liquidation Risk:} High leverage (e.g., \(5\times\) or more) increases the risk of liquidation in volatile markets. Choose conservative leverage.
+    \item \textbf{Tax Implications:} DeFi and derivatives operations may have tax consequences. Consult a tax expert to comply with local regulations.
+\end{itemize}
+
+\section{Conclusion}
+The presented formula enables precise calculation of the capital percentage needed to hedge impermanent loss in a concentrated liquidity pool using a leveraged short position. By considering the initial and final token prices, leverage, and pool dynamics, liquidity providers can protect their capital in bearish scenarios. However, it is critical to adjust the formula based on the specific price range and associated costs (e.g., leverage fees). For practical applications, we recommend simulating different scenarios and consulting DeFi specialists to optimize the hedging strategy.
+
+\end{document}
