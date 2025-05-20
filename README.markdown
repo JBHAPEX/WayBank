@@ -1,7 +1,5 @@
 # WayPool Delta Neutral Algorithm
 
-![WayPool Logo](https://via.placeholder.com/150) <!-- Replace with your logo if available -->
-
 ## Overview
 WayPool is an open-source DeFi project that introduces a delta-neutral algorithm to minimize impermanent loss in concentrated liquidity pools, such as Uniswap V4. By dynamically balancing cryptocurrencies and implementing leveraged short positions, our algorithm maximizes capital efficiency and protects liquidity providers from price volatility.
 
