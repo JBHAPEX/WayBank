@@ -1,167 +1,186 @@
-# Sistema de Wallets Custodiales WayPool
+# Sistema de Wallet Custodiado WayPool
 
-## Introducción
+## Descripción General
 
-El sistema de wallets custodiales de WayPool ofrece una forma segura y accesible para gestionar criptomonedas sin la necesidad de manejar claves privadas o frases semilla. Este documento explica el funcionamiento, características y estado actual del sistema, incluyendo las mejoras de seguridad implementadas y la compatibilidad con múltiples redes blockchain.
+El sistema de wallet custodiado de WayPool proporciona una solución segura para usuarios que desean gestionar activos blockchain sin tener que manejar directamente claves privadas. Este documento técnico describe la arquitectura, mecanismos de seguridad, y procesos críticos del sistema, incluyendo la implementación mejorada de frases semilla para recuperación.
 
-## Estado actual del sistema (Mayo 2025)
+## Arquitectura del Sistema
 
-### Auditoría de seguridad
+### Componentes Principales
 
-La auditoría realizada en Mayo 2025 ha detectado y corregido las siguientes vulnerabilidades críticas:
+1. **Gestión de Wallets Custodiados**
+   - Creación de wallets con claves privadas cifradas
+   - Almacenamiento seguro de datos sensibles
+   - Gestión de sesiones y autenticación
 
-1. **Vulnerabilidad de semillas estáticas**: Se identificó y corrigió un problema crítico donde todas las wallets custodiadas compartían la misma frase semilla hardcodeada en el código, lo que comprometía la seguridad de todos los fondos.
+2. **Sistema de Recuperación**
+   - Recuperación por correo electrónico
+   - Recuperación por frase semilla única
+   - Tokens de recuperación con tiempo limitado
 
-2. **Implementación incompleta del sistema de transferencias**: Se ha completado la implementación del sistema de descifrado de claves privadas para permitir transferencias seguras desde los wallets custodiados.
+3. **Base de Datos**
+   - Tablas para wallets custodiados
+   - Tablas para sesiones
+   - Tablas para tokens de recuperación
+   - Tabla para frases semilla (wallet_seed_phrases)
 
-### Mejoras implementadas
+## Implementación de Seguridad de Frases Semilla
 
-1. **Generación única de semillas**: Cada wallet ahora tiene su propia frase semilla única y segura, generada criptográficamente y almacenada de forma cifrada en la base de datos.
+### Generación de Frases Semilla
 
-2. **Sistema de descifrado seguro**: Se ha implementado un sistema completo de cifrado/descifrado utilizando AES-256-GCM con la variable de entorno `WALLET_MASTER_KEY` como clave maestra.
+El sistema utiliza un generador de frases semilla determinista y criptográficamente seguro que:
 
-3. **Verificación de sesión mejorada**: Mejora en el sistema de verificación de sesiones para garantizar que solo los propietarios legítimos puedan acceder a sus wallets.
+1. **Garantiza unicidad por wallet**: Cada dirección de wallet tiene una frase semilla única y exclusiva.
+2. **Utiliza estándares BIP39**: Las frases se generan utilizando el wordlist estándar BIP39 en inglés.
+3. **Aplica hashing criptográfico**: Uso de HMAC-SHA512 para derivar frases a partir de la dirección.
+4. **Mantiene compatibilidad**: Sistema dual que soporta tanto frases en inglés (nuevas) como en español (legacy).
 
-4. **Transferencias funcionales**: Los usuarios ahora pueden transferir ETH, tokens ERC20 y NFTs desde sus wallets custodiados a cualquier dirección.
+```javascript
+// Ejemplo simplificado del generador de frases semilla
+function generateEnglishSeedPhrase(walletAddress) {
+  // Normalizar la dirección
+  const normalizedAddress = walletAddress.toLowerCase().replace('0x', '');
+  
+  // Derivar clave usando HMAC-SHA512
+  const hmac = crypto.createHmac('sha512', seedGeneratorConfig.salt);
+  hmac.update(normalizedAddress);
+  const addressHmac = hmac.digest('hex');
+  
+  // Seleccionar 12 palabras del wordlist BIP39 en inglés
+  const seedWords = [];
+  for (let i = 0; i < 12; i++) {
+    const segment = addressHmac.substring(i * 8, (i * 8) + 8);
+    const segmentValue = parseInt(segment, 16);
+    const wordIndex = segmentValue % ENGLISH_WORDLIST.length;
+    seedWords.push(ENGLISH_WORDLIST[wordIndex]);
+  }
+  
+  return seedWords.join(' ');
+}
+```
 
-### Estado de las wallets existentes
+### Verificación de Frases Semilla
 
-- **Seguridad de wallets antiguos**: Todos los wallets creados antes de esta actualización mantienen sus claves privadas originales y ahora son seguros para su uso.
+El sistema implementa un mecanismo de verificación de varias etapas que:
 
-- **Compatibilidad retrospectiva**: No se requieren acciones por parte de los usuarios existentes; sus wallets siguen funcionando con la nueva implementación de seguridad.
+1. **Verifica frases en múltiples idiomas**: Compatible con frases en inglés (actuales) y español (legacy).
+2. **Utiliza comparaciones seguras**: Implementa técnicas para prevenir ataques de temporización.
+3. **Admite múltiples formatos**: Normaliza las entradas para hacer la verificación robusta frente a variaciones de mayúsculas/minúsculas o espacios adicionales.
 
-- **Datos de wallets**: Cada wallet custodiado en la base de datos contiene:
-  - `encrypted_private_key`: Clave privada cifrada única para cada usuario
-  - `encryption_iv`: Vector de inicialización para el cifrado (único por wallet)
-  - `salt`: Sal criptográfica única para el proceso de cifrado
+```javascript
+// Ejemplo simplificado del verificador de frases semilla
+function verifySeedPhrase(seedPhrase, walletAddress) {
+  // Normalizar la frase semilla ingresada
+  const normalizedInput = seedPhrase.trim().toLowerCase();
+  
+  // MÉTODO 1: Verificar en inglés (método principal)
+  const englishPhrase = generateEnglishSeedPhrase(walletAddress).toLowerCase();
+  if (normalizedInput === englishPhrase) {
+    return true;
+  }
+  
+  // MÉTODO 2: Verificar en español (compatibilidad retroactiva)
+  const spanishPhrase = generateSpanishSeedPhrase(walletAddress).toLowerCase();
+  if (normalizedInput === spanishPhrase) {
+    return true;
+  }
+  
+  return false;
+}
+```
 
-## Características principales
+### Almacenamiento Seguro
 
-### Seguridad y accesibilidad
+1. **Base de datos específica**: Las frases semilla se almacenan en una tabla dedicada (`wallet_seed_phrases`).
+2. **Sin almacenamiento innecesario**: Las frases solo se generan cuando se solicitan, reduciendo el riesgo de exposición.
+3. **Asociación directa**: Cada frase está vinculada a una dirección de wallet específica.
 
-- **Gestión de claves centralizada**: WayPool almacena las claves privadas de forma segura y única para cada usuario.
-- **Autenticación mediante contraseña**: Los usuarios acceden a sus fondos utilizando contraseñas personalizadas.
-- **Recuperación vía email y OTP**: En caso de olvidar la contraseña, los usuarios pueden recuperar el acceso mediante un proceso de verificación por email y código OTP.
-- **Cifrado AES-256-GCM**: Las claves privadas se almacenan utilizando cifrado de grado militar.
+## Flujo de Recuperación
 
-### Compatibilidad multi-red
+### Recuperación por Frase Semilla
 
-El sistema de wallets WayPool es compatible con las siguientes redes blockchain:
+1. El usuario inicia el proceso de recuperación seleccionando "Recuperar con frase semilla"
+2. Introduce su frase semilla de 12 palabras en el formulario
+3. El sistema verifica la frase contra todas las wallets:
+   - Primero comprueba si coincide con la frase generada en inglés
+   - Si no hay coincidencia, verifica con la frase en español (compatibilidad)
+4. Al encontrar coincidencia, el usuario puede establecer una nueva contraseña
+5. El sistema actualiza las credenciales y establece una nueva sesión
 
-- Ethereum (Mainnet)
-- Polygon
-- Arbitrum
-- Optimism
-- Base
-- Avalanche
-- Unichain (nueva integración)
-- Monero (a través del conector especializado)
+### Recuperación por Email
 
-### Detección de tokens
+1. El usuario solicita recuperación proporcionando su correo electrónico
+2. El sistema genera un token de recuperación con tiempo limitado
+3. Se envía un correo electrónico con un enlace seguro
+4. Al acceder al enlace, el usuario puede establecer una nueva contraseña
+5. El token se marca como utilizado para prevenir reutilización
 
-- **Tokens estándar**: Reconocimiento automático de tokens populares (USDC, USDT, ETH, MATIC, etc.).
-- **Tokens personalizados**: Posibilidad de añadir manualmente tokens menos comunes.
-- **Tiempo de detección**: 1-3 minutos para la mayoría de las transacciones, dependiendo de la congestión de la red.
+## Mejoras de Seguridad Implementadas
 
-## Arquitectura del sistema de wallets
+### Actualizaciones Recientes
 
-### Componentes principales
+1. **Migración a BIP39 estándar**: Implementación del wordlist en inglés para nuevas frases semilla.
+2. **Compatibilidad dual**: Sistema que verifica tanto frases en inglés como en español.
+3. **Protección contra timing attacks**: Uso de comparaciones de tiempo constante.
+4. **Verificación progresiva**: Comprobación de frases legítimas sin exponer información sensible.
+5. **Mensajes de error genéricos**: Prevención de enumeración de wallets.
 
-1. **Módulo de gestión de claves**
-   - `server/custodial-wallet/service.ts`: Gestión principal de wallets custodiales
-   - `server/custodial-wallet/transfer-service.ts`: Servicio de transferencias seguras
-   - `server/api-wallet-seed.js`: API para la gestión de frases semilla (ahora con generación única)
-   - `server/unique-seed-generator.js`: Generación de frases semilla determinísticas y únicas
+### Consideraciones adicionales
 
-2. **Sistema de cifrado/descifrado**
-   - Algoritmo: AES-256-GCM
-   - Clave maestra: Almacenada como variable de entorno `WALLET_MASTER_KEY`
-   - Vector de inicialización: Único para cada wallet, almacenado junto con la clave privada cifrada
-   - Salt: Valor único por wallet para añadir entropía adicional
+1. **Prevención de fuerza bruta**: Limitación de intentos de recuperación.
+2. **Auditoría de operaciones**: Registro de intentos de recuperación (exitosos y fallidos).
+3. **Aislamiento de datos**: Separación de datos sensibles y no sensibles.
 
-3. **Base de datos**
-   - Tabla `wallet_seed_phrases`: Almacena las frases semilla cifradas
-   - Tabla `wallet_private_keys`: Almacena las claves privadas cifradas
-   - Columnas de seguridad: `encrypted_private_key`, `encryption_iv`, `salt`
+## Esquema de la Base de Datos
 
-### Flujo de funcionamiento
+```sql
+-- Tabla principal de wallets custodiados
+CREATE TABLE custodial_wallets (
+  id SERIAL PRIMARY KEY,
+  address VARCHAR(255) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  salt VARCHAR(255) NOT NULL,
+  encrypted_private_key TEXT NOT NULL,
+  encryption_iv VARCHAR(255) NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  last_login_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+);
 
-#### Creación y acceso a wallets
+-- Tabla para almacenar frases semilla
+CREATE TABLE wallet_seed_phrases (
+  id SERIAL PRIMARY KEY,
+  wallet_address VARCHAR(255) NOT NULL UNIQUE,
+  seed_phrase TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
 
-1. **Registro de wallet**: 
-   - El usuario proporciona una contraseña segura
-   - El sistema genera una frase semilla única
-   - Se deriva la clave privada desde la semilla
-   - La clave privada se cifra con AES-256-GCM usando `WALLET_MASTER_KEY`
-   - Se almacena en la base de datos junto con IV y salt únicos
+-- Tabla para tokens de recuperación
+CREATE TABLE custodial_recovery_tokens (
+  id SERIAL PRIMARY KEY,
+  wallet_id INTEGER NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  recovery_token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (wallet_id) REFERENCES custodial_wallets(id) ON DELETE CASCADE
+);
+```
 
-2. **Inicio de sesión**: 
-   - El acceso se realiza mediante la dirección del wallet y la contraseña establecida
-   - El sistema verifica la contraseña y genera un token de sesión temporal
+## Consideraciones de Seguridad
 
-3. **Sesiones**: 
-   - El sistema genera tokens de sesión únicos para mantener la autenticación
-   - Las sesiones tienen un tiempo de vida limitado por seguridad
+1. **Protección de datos**: Las claves privadas nunca se almacenan en texto plano.
+2. **Aislamiento de componentes**: Separación entre la lógica de autenticación y la gestión de wallets.
+3. **Defensa en profundidad**: Múltiples capas de validación y autenticación.
+4. **Frases semilla seguras**: Generación determinista pero criptográficamente segura.
+5. **Compatibilidad retroactiva**: Soporte para sistemas anteriores sin comprometer la seguridad.
 
-#### Transferencia de fondos
+## Conclusión
 
-1. **Solicitud de transferencia**:
-   - El usuario especifica el activo, cantidad y dirección destino
-   - El sistema verifica la sesión y los permisos del usuario
+El sistema de wallet custodiado WayPool proporciona una solución robusta que equilibra seguridad y facilidad de uso. Las mejoras implementadas en el sistema de frases semilla aseguran que los usuarios puedan recuperar sus wallets de manera segura, mientras que el sistema mantiene la compatibilidad con implementaciones anteriores.
 
-2. **Descifrado de clave privada**:
-   - Se recupera la clave privada cifrada, IV y salt desde la base de datos
-   - Se utiliza `WALLET_MASTER_KEY` para descifrar la clave privada
-   - El proceso se realiza en memoria y la clave privada nunca se almacena descifrada
-
-3. **Firma y envío de transacción**:
-   - Se firma la transacción con la clave privada descifrada
-   - Se envía la transacción firmada a la red blockchain
-   - Se registra la transacción en el histórico del usuario
-
-4. **Verificación y confirmación**:
-   - El sistema monitorea la transacción hasta su confirmación
-   - Se notifica al usuario sobre el estado de la transacción
-
-## Consideraciones importantes
-
-### Ventajas
-
-- **Facilidad de uso**: Ideal para usuarios nuevos en el ecosistema blockchain.
-- **Seguridad mejorada**: Reducción del riesgo de pérdida de fondos por errores de usuario.
-- **Experiencia simplificada**: No es necesario gestionar múltiples claves privadas o frases semilla.
-- **Transferencias seguras**: Sistema completo para transferir activos digitales con seguridad.
-
-### Limitaciones
-
-- **Custodia centralizada**: La gestión de claves está centralizada en WayPool, contrario al principio "not your keys, not your coins".
-- **Dependencia del servicio**: El acceso a los fondos depende de la disponibilidad del servicio WayPool.
-- **No exportable**: Las claves privadas y frases semilla no se proporcionan a los usuarios.
-
-### Riesgos
-
-- Una vez transferidos los fondos a un wallet WayPool, no es posible recuperarlos mediante métodos tradicionales de recuperación de wallet (frase semilla de 12 palabras).
-- La seguridad de los fondos depende de la robustez de la infraestructura de WayPool y de la seguridad de la contraseña establecida por el usuario.
-- La clave maestra del sistema (`WALLET_MASTER_KEY`) debe mantenerse absolutamente segura, ya que su compromiso podría afectar a todos los wallets.
-
-## Recomendaciones para usuarios
-
-- Utilizar contraseñas fuertes y únicas para proteger el acceso al wallet.
-- Mantener actualizada la información de contacto para la recuperación por email.
-- Realizar copias de seguridad de las contraseñas utilizando gestores de contraseñas seguros.
-- Verificar las direcciones de destino antes de realizar transferencias.
-- Para cantidades importantes, considerar utilizar wallets no custodiales con control total sobre las claves privadas.
-
-## Plan de desarrollo futuro
-
-Las siguientes mejoras están planificadas para implementarse en el sistema de wallets:
-
-1. **Sistema de exportación opcional**: Permitir a los usuarios avanzados exportar sus frases semilla con las advertencias y protecciones adecuadas.
-
-2. **Autenticación de múltiples factores**: Añadir opciones adicionales de MFA incluyendo autenticación por app, SMS y hardware.
-
-3. **Firmas Multi-sig**: Implementar un sistema opcional de firmas múltiples para wallets de alta seguridad.
-
-4. **Auditoría blockchain**: Mejorar la transparencia mediante un sistema de verificación pública de saldos.
-
-5. **Límites de transferencia personalizables**: Permitir a los usuarios establecer límites diarios de transferencia para mejorar la seguridad.
+La migración a frases semilla en inglés siguiendo el estándar BIP39 refuerza la seguridad y la interoperabilidad del sistema, permitiendo una mayor flexibilidad para futuras expansiones y mejoras.
