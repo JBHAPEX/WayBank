@@ -40,7 +40,7 @@ Check [Issues](https://github.com/your-username/waypool-delta-neutral/issues) fo
 - Q4 2025: Mainnet deployment and community governance.
 
 ## Contact
-- Email: [contact@waypool.net](mailto:contact@waypool.net)
+- Email: [info@elysiumdubai.net](mailto:info@elysiumdubai.net)
 - Twitter: [@WayPool](https://twitter.com/your-twitter) <!-- Update with your handle -->
 - Discord: [Join our community](https://discord.gg/your-invite) <!-- Update with your link -->
 
