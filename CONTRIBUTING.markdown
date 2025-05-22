@@ -35,7 +35,7 @@ Thank you for your interest in contributing to WayPool! We’re building an open
 ## Getting Help
 - Check [Issues](https://github.com/your-username/waypool-delta-neutral/issues) for open tasks or report bugs.
 - Join our [Discord community](https://discord.gg/your-invite) for discussions.
-- Email [contact@waypool.net](mailto:contact@waypool.net) for direct inquiries.
+- Email [info@elysiumdubai.net](mailto:info@elysiumdubai.net) for direct inquiries.
 
 ## Code of Conduct
 Be respectful and inclusive in all interactions. We follow the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/0/code_of_conduct/).
